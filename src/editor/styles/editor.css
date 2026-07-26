@@ -1,0 +1,685 @@
+@import "tailwindcss";
+
+/* Omid Editor — theme tokens + surface */
+
+.omid-editor-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--editor-border, #e2e8f0);
+  border-radius: var(--editor-radius, 1rem);
+  background: var(--editor-bg, #ffffff);
+  color: var(--editor-text, #0f172a);
+  box-shadow: var(--editor-shadow, 0 1px 2px rgb(15 23 42 / 0.04));
+  overflow: visible;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.omid-editor-container.omid-editor-focused {
+  border-color: color-mix(in srgb, var(--editor-text) 35%, var(--editor-border));
+  box-shadow:
+    0 0 0 3px var(--editor-focus-ring, rgb(148 163 184 / 0.25)),
+    var(--editor-shadow, 0 1px 2px rgb(15 23 42 / 0.04));
+}
+
+.omid-editor-container .omid-toolbar {
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+.omid-editor-container .omid-mobile-toolbar.sticky.bottom-0 {
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+
+.omid-editor-dir-rtl .omid-toolbar-scroll,
+.omid-editor-dir-rtl .omid-mobile-toolbar > div {
+  flex-direction: row-reverse;
+}
+
+.omid-editor-dir-rtl .omid-editor-input {
+  text-align: right;
+  caret-color: var(--editor-caret, currentColor);
+}
+
+.omid-editor-dir-ltr .omid-editor-input {
+  text-align: left;
+}
+
+.omid-editor-dir-rtl .omid-editor-list-ol,
+.omid-editor-dir-rtl .omid-editor-list-ul {
+  padding: 0 1.35rem 0 0;
+}
+
+.omid-editor-dir-rtl .omid-editor-quote {
+  border-left: none;
+  border-right: 3px solid color-mix(in srgb, var(--editor-muted) 70%, transparent);
+  border-radius: 0.75rem 0 0 0.75rem;
+  padding: 0.75rem 1.15rem 0.75rem 1rem;
+}
+
+.omid-editor-inner {
+  position: relative;
+  min-height: 220px;
+}
+
+.omid-editor-input {
+  position: relative;
+  min-height: 220px;
+  padding: 1rem 1.125rem;
+  outline: none;
+  caret-color: var(--editor-caret, #0f172a);
+  color: var(--editor-text, #0f172a);
+  font-size: 1rem;
+  line-height: 1.7;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: text;
+}
+
+.omid-editor-input:focus {
+  outline: none;
+}
+
+.omid-editor-input span[style] {
+  border-radius: 0.15em;
+}
+
+.omid-editor-placeholder {
+  position: absolute;
+  top: 1rem;
+  left: 1.125rem;
+  right: 1.125rem;
+  color: var(--editor-placeholder, #94a3b8);
+  font-size: 1rem;
+  line-height: 1.7;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omid-editor-dir-rtl .omid-editor-placeholder {
+  text-align: right;
+}
+
+.omid-editor-error {
+  margin: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--editor-danger) 40%, transparent);
+  border-radius: 0.75rem;
+  background: var(--editor-danger-bg, #fef2f2);
+  color: var(--editor-danger, #b91c1c);
+  font-size: 0.875rem;
+}
+
+/* Theme nodes */
+.omid-editor-paragraph {
+  margin: 0 0 0.75rem;
+}
+
+.omid-editor-h1,
+.omid-editor-h2,
+.omid-editor-h3,
+.omid-editor-h4,
+.omid-editor-h5,
+.omid-editor-h6 {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--editor-text, #0f172a);
+}
+
+.omid-editor-h1 {
+  font-size: 1.875rem;
+}
+
+.omid-editor-h2 {
+  font-size: 1.5rem;
+}
+
+.omid-editor-h3 {
+  font-size: 1.25rem;
+}
+
+.omid-editor-h4 {
+  font-size: 1.125rem;
+}
+
+.omid-editor-h5 {
+  font-size: 1rem;
+}
+
+.omid-editor-h6 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.omid-editor-quote {
+  margin: 0.25rem 0 1rem;
+  padding: 0.75rem 1rem 0.75rem 1.15rem;
+  border-left: 3px solid color-mix(in srgb, var(--editor-muted) 70%, transparent);
+  border-radius: 0 0.75rem 0.75rem 0;
+  background: var(--editor-surface, #f8fafc);
+  color: var(--editor-muted, #475569);
+  font-style: italic;
+  line-height: 1.7;
+}
+
+.omid-editor-hr {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 0;
+  margin: 1.25rem 0;
+  padding: 0;
+  border: none;
+  border-top: 1.5px solid var(--editor-border, #cbd5e1);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.omid-editor-hr-selected {
+  border-top-color: var(--editor-active, #0f172a);
+  outline: 2px solid color-mix(in srgb, var(--editor-muted) 60%, transparent);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+@media (max-width: 639px) {
+  .omid-editor-quote {
+    margin-bottom: 0.85rem;
+    padding: 0.65rem 0.85rem 0.65rem 0.95rem;
+  }
+
+  .omid-editor-hr {
+    margin: 1rem 0;
+  }
+}
+
+.omid-editor-list-ol,
+.omid-editor-list-ul {
+  margin: 0 0 0.85rem;
+  padding: 0 0 0 1.35rem;
+}
+
+.omid-editor-list-ol {
+  list-style-type: decimal;
+}
+
+.omid-editor-list-ul {
+  list-style-type: disc;
+}
+
+.omid-editor-listitem {
+  margin: 0.2rem 0;
+  padding-left: 0.15rem;
+  line-height: 1.65;
+}
+
+.omid-editor-nested-listitem {
+  list-style-type: none;
+}
+
+.omid-editor-checklist {
+  list-style-type: none;
+  padding-left: 0.25rem;
+  margin: 0 0 0.85rem;
+}
+
+.omid-editor-listitem-checked,
+.omid-editor-listitem-unchecked {
+  position: relative;
+  margin: 0.3rem 0;
+  padding-left: 1.75rem;
+  list-style-type: none;
+  outline: none;
+}
+
+.omid-editor-listitem-checked {
+  text-decoration: line-through;
+  color: var(--editor-muted, #64748b);
+}
+
+.omid-editor-listitem-unchecked::before,
+.omid-editor-listitem-checked::before {
+  content: '';
+  position: absolute;
+  top: 0.3rem;
+  left: 0;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 0.3rem;
+  border: 1.5px solid color-mix(in srgb, var(--editor-muted) 70%, transparent);
+  background: var(--editor-bg, #ffffff);
+  cursor: pointer;
+}
+
+.omid-editor-listitem-checked::before {
+  border-color: var(--editor-active, #0f172a);
+  background: var(--editor-active, #0f172a);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+  background-size: 0.75rem 0.75rem;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.omid-editor-dir-rtl .omid-editor-listitem-checked,
+.omid-editor-dir-rtl .omid-editor-listitem-unchecked {
+  padding-left: 0;
+  padding-right: 1.75rem;
+}
+
+.omid-editor-dir-rtl .omid-editor-listitem-unchecked::before,
+.omid-editor-dir-rtl .omid-editor-listitem-checked::before {
+  left: auto;
+  right: 0;
+}
+
+.omid-editor-listitem-unchecked:focus-visible::before,
+.omid-editor-listitem-checked:focus-visible::before {
+  outline: 2px solid var(--editor-muted, #64748b);
+  outline-offset: 2px;
+}
+
+@media (max-width: 639px) {
+  .omid-editor-list-ol,
+  .omid-editor-list-ul {
+    padding-left: 1.15rem;
+  }
+
+  .omid-editor-dir-rtl .omid-editor-list-ol,
+  .omid-editor-dir-rtl .omid-editor-list-ul {
+    padding-left: 0;
+    padding-right: 1.15rem;
+  }
+
+  .omid-editor-listitem-checked,
+  .omid-editor-listitem-unchecked {
+    padding-left: 1.6rem;
+  }
+
+  .omid-editor-listitem-unchecked::before,
+  .omid-editor-listitem-checked::before {
+    width: 0.95rem;
+    height: 0.95rem;
+    top: 0.28rem;
+  }
+}
+
+.omid-editor-link {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.omid-editor-link:hover {
+  color: #1d4ed8;
+}
+
+.omid-editor-image {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.omid-editor-image-wrapper {
+  max-width: 100%;
+  vertical-align: top;
+  transition: outline-color 0.15s ease;
+}
+
+.omid-editor-image-media {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.875rem;
+  transition: outline 0.15s ease, outline-offset 0.15s ease;
+}
+
+.omid-editor-image-selected .omid-editor-image-media {
+  outline: 2px solid var(--editor-active, #0f172a);
+  outline-offset: 3px;
+  animation: omid-fade-in 160ms ease;
+}
+
+.omid-editor-image-handle {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-top: -0.35rem;
+  border-radius: 999px;
+  border: 2px solid var(--editor-bg, #ffffff);
+  background: var(--editor-active, #0f172a);
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.25);
+  touch-action: none;
+}
+
+.omid-editor-image-handle-left {
+  left: -0.3rem;
+  cursor: ew-resize;
+}
+
+.omid-editor-image-handle-right {
+  right: -0.3rem;
+  cursor: ew-resize;
+}
+
+.omid-editor-image-caption {
+  max-width: 100%;
+}
+
+@media (max-width: 639px) {
+  .omid-editor-image-handle {
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-top: -0.425rem;
+  }
+
+  .omid-editor-image-handle-left {
+    left: -0.2rem;
+  }
+
+  .omid-editor-image-handle-right {
+    right: -0.2rem;
+  }
+}
+
+.omid-editor-code {
+  display: block;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.omid-editor-text-bold {
+  font-weight: 700;
+}
+
+.omid-editor-text-italic {
+  font-style: italic;
+}
+
+.omid-editor-text-underline {
+  text-decoration: underline;
+}
+
+.omid-editor-text-strikethrough {
+  text-decoration: line-through;
+}
+
+.omid-editor-text-underlineStrikethrough {
+  text-decoration: underline line-through;
+}
+
+.omid-editor-ltr {
+  text-align: left;
+}
+
+.omid-editor-rtl {
+  text-align: right;
+}
+
+/* Loading + animations */
+.omid-spinner {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--editor-border, #e2e8f0);
+  border-top-color: var(--editor-active, #0f172a);
+  animation: omid-spin 700ms linear infinite;
+}
+
+.omid-mobile-more-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--editor-text, #0f172a);
+  transition: background-color 0.15s ease;
+}
+
+.omid-mobile-more-item:hover {
+  background: var(--editor-hover, #f1f5f9);
+}
+
+.omid-popover-surface {
+  border: 1px solid var(--editor-popover-border, var(--editor-border, #e2e8f0));
+  background: var(--editor-popover, var(--editor-bg, #ffffff));
+  color: var(--editor-text, #0f172a);
+  box-shadow: var(--editor-shadow, 0 12px 32px rgb(15 23 42 / 0.12));
+  animation: omid-scale-in 160ms ease;
+}
+
+@keyframes omid-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes omid-scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes omid-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes omid-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes omid-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tablet */
+@media (min-width: 640px) {
+  .omid-editor-inner {
+    min-height: 280px;
+  }
+
+  .omid-editor-input {
+    min-height: 280px;
+    padding: 1.25rem 1.5rem;
+    font-size: 1.0625rem;
+  }
+
+  .omid-editor-placeholder {
+    top: 1.25rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    font-size: 1.0625rem;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .omid-editor-container {
+    border-radius: var(--editor-radius, 1.25rem);
+  }
+
+  .omid-editor-inner {
+    min-height: 360px;
+  }
+
+  .omid-editor-input {
+    min-height: 360px;
+    padding: 1.5rem 1.75rem;
+    font-size: 1.125rem;
+    line-height: 1.75;
+  }
+
+  .omid-editor-placeholder {
+    top: 1.5rem;
+    left: 1.75rem;
+    right: 1.75rem;
+    font-size: 1.125rem;
+    line-height: 1.75;
+  }
+
+  .omid-editor-h1 {
+    font-size: 2.25rem;
+  }
+
+  .omid-editor-h2 {
+    font-size: 1.75rem;
+  }
+}
+
+/* Mobile refinements */
+@media (max-width: 639px) {
+  .omid-editor-container {
+    border-radius: 0.875rem;
+  }
+
+  .omid-editor-input {
+    padding: 0.875rem 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .omid-editor-placeholder {
+    top: 0.875rem;
+    left: 1rem;
+    right: 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .omid-toolbar-btn {
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+  }
+}
+
+/* Mentions */
+.omid-editor-mention {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05em 0.4em;
+  margin: 0 0.1em;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--editor-active, #0f172a) 12%, transparent);
+  color: var(--editor-text, #0f172a);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Tables */
+.omid-editor-table {
+  width: 100%;
+  margin: 0.75rem 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  overflow-x: auto;
+  display: block;
+  max-width: 100%;
+  border: 1px solid var(--editor-border, #e2e8f0);
+  border-radius: 0.75rem;
+}
+
+.omid-editor-table-row {
+  border-bottom: 1px solid var(--editor-border, #e2e8f0);
+}
+
+.omid-editor-table-cell,
+.omid-editor-table-cell-header {
+  min-width: 5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--editor-border, #e2e8f0);
+  vertical-align: top;
+  position: relative;
+  outline: none;
+}
+
+.omid-editor-table-cell-header {
+  background: var(--editor-surface, #f8fafc);
+  font-weight: 600;
+}
+
+.omid-editor-table-selection {
+  background: color-mix(in srgb, var(--editor-active, #0f172a) 10%, transparent);
+}
+
+@media (max-width: 639px) {
+  .omid-editor-table {
+    font-size: 0.875rem;
+  }
+
+  .omid-editor-table-cell,
+  .omid-editor-table-cell-header {
+    min-width: 4.25rem;
+    padding: 0.4rem 0.5rem;
+  }
+}
+
+/* Video / file blocks */
+.omid-editor-video-btn {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.45rem;
+  color: var(--editor-muted, #64748b);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.omid-editor-video-btn:hover {
+  background: var(--editor-hover, #f1f5f9);
+  color: var(--editor-text, #0f172a);
+}
+
+.omid-editor-stats strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.omid-media-library {
+  animation: omid-scale-in 160ms ease;
+}
