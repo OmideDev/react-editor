@@ -1,351 +1,335 @@
-# 🚀 @omidtz/react-editor
+# @omidtz/react-editor
 
-> A production-ready Rich Text Editor for React powered by Lexical.
+A modern Lexical-based rich text editor for React.
 
-Modern • Lightweight • Responsive • TypeScript Ready • SSR Safe • Mobile Friendly
-
----
-
-## ✨ Features
-
-* 🎯 Rich Text Editing
-* 📝 Headings (H1–H6)
-* **Bold**
-* *Italic*
-* Underline
-* Strikethrough
-* Inline Code
-* Text Highlight
-* Text Color
-* Background Color
-* Bullet List
-* Numbered List
-* Checklist
-* Blockquote
-* Divider
-* Hyperlinks
-* Image Upload
-* Drag & Drop Images
-* Image Resize
-* Image Caption
-* Slash Commands
-* Markdown Shortcuts
-* Auto Save
-* Word Count
-* Character Count
-* Emoji Picker
-* Tables
-* File Upload
-* Video Embed
-* Responsive Toolbar
-* Dark Mode
-* RTL / LTR
-* Accessibility Ready
-* Semantic HTML Output
-* React 18+
-* React 19+
-* JavaScript Support
-* TypeScript Support
-* SSR Compatible
-* Vite Ready
-* Next.js Ready
-
----
-
-# Installation
+**v0.2.1** · React 18 / 19 · JavaScript & TypeScript · Vite · Next.js · SSR-friendly
 
 ```bash
 npm install @omidtz/react-editor
 ```
 
----
-
-# Quick Start
-
 ```jsx
 import { Editor } from "@omidtz/react-editor";
 
 export default function App() {
-  return (
-    <Editor />
-  );
+  return <Editor direction="rtl" onChange={({ html, json }) => console.log(html, json)} />;
 }
+```
+
+Styles load automatically with the package import. Optional explicit import:
+
+```js
+import "@omidtz/react-editor/style.css";
 ```
 
 ---
 
-# Basic Example
+## Features
+
+### Editing
+- Headings H1–H6, paragraph
+- Bold, italic, underline, strikethrough
+- Text color, highlight, background color
+- Bullet / numbered / checklist
+- Quote, divider, links
+- Undo / redo
+- Slash commands (`/`)
+- Markdown shortcuts (`# `, `## `, `> `, `- `, `1. `, `` ``` ``, `**bold**`, `_italic_`)
+- Mentions (`@`)
+- Emoji picker
+- Code blocks
+- Tables (insert, add/delete rows & columns)
+- File attachments (PDF, DOC, DOCX, ZIP, TXT)
+- Video embed (YouTube, Vimeo, generic embed URL)
+
+### Media
+- **Media Library** (WordPress-style): Library + Upload tabs, search, details (title / alt), delete, insert
+- Local browser storage by default
+- Optional `onImageUpload` / `onFileUpload` for your API
+- Image resize & caption in the editor
+
+### UX / UI
+- Responsive toolbar (desktop / tablet / mobile)
+- Mobile sticky toolbar + More menu
+- **RTL / LTR toggle** in the toolbar (desktop & mobile)
+- Direction-aware placeholder: RTL → `بنویسید` · LTR → `Write`
+- Light / dark / custom theme (CSS variables)
+- Loading overlay
+- Auto-save with status indicator
+- Word / character count & reading time
+- Character limit (`maxCharacters`)
+- Floating UI tooltips
+- Keyboard navigation & ARIA
+
+### Output
+- Semantic HTML (`h1–h6`, `p`, `ul`/`ol`, `blockquote`, `a`, `img`/`figure`, `table`, …)
+- Lexical JSON
+- `onChange({ html, json })`
+
+---
+
+## Quick start
 
 ```jsx
 import { Editor } from "@omidtz/react-editor";
 
 function App() {
-
-  const handleChange = ({ html, json }) => {
-    console.log(html);
-    console.log(json);
-  };
-
   return (
     <Editor
-      placeholder="Start writing..."
-      onChange={handleChange}
+      direction="rtl"
+      theme="light"
+      onChange={({ html, json }) => {
+        // persist html / json
+      }}
     />
   );
 }
-
-export default App;
 ```
 
 ---
 
-# Image Upload
+## Props
 
-The editor does not upload images by itself.
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `object \| string \| null` | — | Initial Lexical JSON (or HTML string) |
+| `placeholder` | `string` | auto | Custom placeholder; if omitted, uses `بنویسید` (RTL) or `Write` (LTR) |
+| `theme` | `"light" \| "dark" \| object` | `"light"` | Theme preset or custom tokens (`primary`, `radius`, `mode`, …) |
+| `direction` | `"ltr" \| "rtl" \| "auto"` | `"ltr"` | Initial text direction (toggleable in toolbar) |
+| `loading` | `boolean` | `false` | Full-surface loading overlay |
+| `loadingLabel` | `string` | `"Loading…"` | Overlay label |
+| `onChange` | `({ html, json }) => void` | — | Fires on every content update |
+| `onJSONChange` | `(json) => void` | — | JSON-only callback |
+| `onHTMLChange` | `(html) => void` | — | HTML-only callback |
+| `autoSave` | `{ enabled?, delay?, onSave }` | — | Debounced save (see below) |
+| `mentions` | `{ id, name, username }[]` | `[]` | Users for `@` mention menu |
+| `maxCharacters` | `number` | — | Soft character limit + stats display |
+| `video` | `boolean` | `true` | Enable video paste/embed |
+| `files` | `boolean` | `true` | Enable file attachments |
+| `showStats` | `boolean` | `true` | Word / character / reading-time bar |
+| `onImageUpload` | `(file) => Promise<string>` | — | Returns image URL for Media Library uploads |
+| `onFileUpload` | `(file) => Promise<string \| FileInfo>` | — | Returns URL or file info |
+| `toolbar` | `ReactNode \| false` | default | Custom toolbar or `false` to hide |
+| `mobileToolbar` | `ReactNode \| false` | default | Custom mobile toolbar or `false` |
+| `className` | `string` | — | Container class |
+| `contentClassName` | `string` | — | ContentEditable class |
 
-You provide an upload function and return the final image URL.
+---
+
+## Examples
+
+### Controlled / persisted content
+
+```jsx
+<Editor
+  value={savedJson}
+  onChange={({ json, html }) => {
+    localStorage.setItem("doc", JSON.stringify(json));
+  }}
+/>
+```
+
+### Auto save
+
+```jsx
+<Editor
+  autoSave={{
+    enabled: true,
+    delay: 2000,
+    onSave: async ({ json, html }) => {
+      await fetch("/api/docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ json, html }),
+      });
+    },
+  }}
+/>
+```
+
+Shows **Saving… / Saved / error** in the editor chrome.
+
+### Theme
+
+```jsx
+<Editor theme="dark" />
+
+<Editor
+  theme={{
+    mode: "light",
+    primary: "#6366f1",
+    radius: "12px",
+  }}
+/>
+```
+
+### Direction (RTL / LTR)
+
+```jsx
+<Editor direction="rtl" />
+<Editor direction="ltr" />
+```
+
+Users can also toggle **RTL ↔ LTR** from the first control in the toolbar. Placeholder updates automatically unless you pass a custom `placeholder`.
+
+### Mentions
+
+```jsx
+<Editor
+  mentions={[
+    { id: 1, name: "Omid", username: "omid" },
+    { id: 2, name: "Admin", username: "admin" },
+  ]}
+/>
+```
+
+Type `@` to open the mention menu (search + keyboard navigation).
+
+### Character limit & stats
+
+```jsx
+<Editor maxCharacters={5000} showStats />
+```
+
+### Image upload (Media Library → your API)
+
+By default, images stay in the browser (`localStorage` media library). Wire your server like this:
 
 ```jsx
 <Editor
   onImageUpload={async (file) => {
-
     const formData = new FormData();
     formData.append("image", file);
 
-    const response = await fetch("/api/upload", {
+    const res = await fetch("/api/upload", {
       method: "POST",
-      body: formData
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
     });
 
-    const data = await response.json();
-
-    return data.url;
-
+    const data = await res.json();
+    return data.url; // Promise<string>
   }}
 />
 ```
 
-After the Promise resolves, the editor automatically inserts the image.
+**Flow:** Toolbar Image → Media Library → Upload or pick existing → Insert into editor.
 
----
-
-# File Upload
+### File upload
 
 ```jsx
 <Editor
-  onFileUpload={async(file)=>{
-
-      const result = await uploadFile(file);
-
-      return {
-          url:result.url,
-          name:result.name,
-          size:result.size
-      }
-
+  onFileUpload={async (file) => {
+    const uploaded = await uploadFile(file);
+    return {
+      src: uploaded.url,
+      name: uploaded.name,
+      size: uploaded.size,
+      mimeType: uploaded.mimeType,
+    };
   }}
 />
 ```
 
+Or return a plain URL string.
+
+### Video
+
+Paste a YouTube / Vimeo (or embed) URL — it becomes a responsive video block (replace / remove supported).
+
+Disable with `video={false}`.
+
+### Slash commands
+
+Type `/` for: Heading 1–2, lists, checklist, quote, divider, image, table, code block.
+
+### Markdown shortcuts
+
+While typing: `# `, `## `, `> `, `- `, `1. `, fenced code, `**bold**`, `_italic_`.
+
 ---
 
-# Themes
+## Public API
 
-```jsx
-<Editor theme="light" />
+### Main
+
+```js
+import {
+  Editor,
+  EditorProvider,
+  Toolbar,
+  exportJSON,
+  exportHTML,
+  exportEditorValue,
+  importJSON,
+  importHTML,
+  importEditorValue,
+} from "@omidtz/react-editor";
 ```
 
-```jsx
-<Editor theme="dark" />
-```
+### Hooks & theme (advanced)
+
+Also exported: `useEditorCommands`, `useEditorValue`, `useTheme`, `useDirection`, `useAutoSave`, plugins, nodes, and utils for extension.
 
 ---
 
-# RTL
-
-```jsx
-<Editor direction="rtl" />
-```
-
----
-
-# LTR
-
-```jsx
-<Editor direction="ltr" />
-```
-
----
-
-# Read Only
-
-```jsx
-<Editor readOnly />
-```
-
----
-
-# Auto Save
-
-```jsx
-<Editor autoSave />
-```
-
----
-
-# Placeholder
-
-```jsx
-<Editor placeholder="Write your article..." />
-```
-
----
-
-# Props
-
-| Prop          | Type         | Default | Description           |
-| ------------- | ------------ | ------- | --------------------- |
-| value         | string       | ""      | Initial content       |
-| placeholder   | string       | ""      | Placeholder text      |
-| theme         | light | dark | light   | Editor theme          |
-| direction     | rtl | ltr    | ltr     | Text direction        |
-| readOnly      | boolean      | false   | Read-only mode        |
-| autoSave      | boolean      | false   | Enable auto save      |
-| onChange      | function     | —       | Returns HTML and JSON |
-| onImageUpload | function     | —       | Upload image callback |
-| onFileUpload  | function     | —       | Upload file callback  |
-
----
-
-# onChange
-
-```jsx
-const handleChange = ({ html, json }) => {
-
-    console.log(html);
-
-    console.log(json);
-
-}
-```
-
----
-
-# HTML Output
+## HTML output (example)
 
 ```html
-<h1>Hello World</h1>
-
-<p>This is a paragraph.</p>
-
+<h1>Hello</h1>
+<p>Paragraph with <strong>bold</strong> and <em>italic</em>.</p>
 <ul>
-  <li>React</li>
-  <li>Lexical</li>
+  <li>Item</li>
 </ul>
-
-<blockquote>
-A beautiful editor.
-</blockquote>
-
+<blockquote>Quote</blockquote>
 <figure>
-    <img src="/image.jpg" alt="Image" />
-    <figcaption>Image Caption</figcaption>
+  <img src="https://cdn.example.com/a.jpg" alt="Demo" />
 </figure>
 ```
 
 ---
 
-# JSON Output
+## Framework notes
 
-```json
-{
-  "root": {
-    "children": []
-  }
-}
+| Environment | Notes |
+| --- | --- |
+| **Vite** | Works out of the box |
+| **Next.js** | Use in Client Components (`"use client"`). CSS auto-imports; if needed: `import "@omidtz/react-editor/style.css"` |
+| **CRA / Remix** | Supported as a normal React dependency |
+| **SSR** | Editor UI is client-side; avoid calling browser-only APIs at import time |
+
+Peer dependencies: `react` and `react-dom` `>=18`.
+
+---
+
+## Development (this repo)
+
+```bash
+npm install
+npm run dev          # playground
+npm run build        # library → dist/
+npm run build:demo   # demo app → dist-demo/
 ```
 
 ---
 
-# Browser Support
+## Roadmap
 
-* Chrome
-* Firefox
-* Safari
-* Edge
-
----
-
-# Requirements
-
-* React 18+
-* React 19+
-* Node.js 18+
+- Server-backed Media Library adapters (folders, pagination API)
+- Collaboration / comments
+- Revision history
+- Stronger public plugin API
+- Official TypeScript `.d.ts` packaging polish
 
 ---
 
-# Works With
+## License
 
-* React
-* Next.js
-* Vite
-* Remix
-* Create React App
+MIT
 
----
+## Author
 
-# Bundle
+**Omid Taziki**
 
-Optimized for production.
-
-* Tree Shaking
-* Code Splitting
-* Lazy Loading
-* Dynamic Imports
-
----
-
-# Accessibility
-
-* Keyboard Navigation
-* ARIA Labels
-* Screen Reader Friendly
-* Focus Management
-
----
-
-# Roadmap
-
-* AI Writing Assistant
-* Comments
-* Collaboration
-* Revision History
-* Plugin API
-* Custom Toolbar
-* Custom Nodes
-
----
-
-# Contributing
-
-Contributions, issues and feature requests are welcome.
-
-Feel free to open an issue or submit a pull request.
-
----
-
-# License
-
-MIT License
-
----
-
-# Author
-
-Developed with ❤️ by **Omid Taziki**
-
-GitHub:
-https://github.com/OmideDev
-
-npm:
-https://www.npmjs.com/package/@omidtz/react-editor
+- GitHub: [https://github.com/OmideDev](https://github.com/OmideDev)
+- npm: [https://www.npmjs.com/package/@omidtz/react-editor](https://www.npmjs.com/package/@omidtz/react-editor)
