@@ -185,7 +185,7 @@ function EditorSurface({
       style={themeStyle}
     >
       {toolbar !== false ? (
-        <div className="omid-toolbar-desktop hidden sm:block">
+        <div className="omid-toolbar-desktop omid-toolbar-sticky-top hidden sm:block">
           {toolbar ?? <Toolbar toolbarExtra={toolbarExtra} />}
         </div>
       ) : null}
@@ -211,7 +211,7 @@ function EditorSurface({
       ) : null}
 
       {toolbar !== false && mobileToolbar !== false ? (
-        <div className="omid-toolbar-mobile sm:hidden">
+        <div className="omid-toolbar-mobile omid-toolbar-sticky-bottom sm:hidden">
           {typeof mobileToolbar === 'object' ? (
             mobileToolbar
           ) : (

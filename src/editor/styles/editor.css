@@ -31,7 +31,43 @@
   border-top-right-radius: inherit;
 }
 
-.omid-editor-container .omid-mobile-toolbar.sticky.bottom-0 {
+/* Sticky shell must be a direct child of the tall container
+   (not a short inner wrapper) so it can pin while content scrolls. */
+.omid-toolbar-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(
+    in srgb,
+    var(--editor-toolbar, #ffffff) 92%,
+    transparent
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.omid-toolbar-sticky-bottom {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  margin-top: auto;
+  background: color-mix(
+    in srgb,
+    var(--editor-toolbar, #ffffff) 92%,
+    transparent
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .omid-toolbar-sticky-top,
+  .omid-toolbar-sticky-bottom {
+    background: var(--editor-toolbar, #ffffff);
+  }
+}
+
+.omid-editor-container .omid-mobile-toolbar {
   border-bottom-left-radius: inherit;
   border-bottom-right-radius: inherit;
 }

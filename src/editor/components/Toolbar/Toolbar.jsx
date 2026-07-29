@@ -33,6 +33,7 @@ import { EmojiPicker } from '../EmojiPicker'
 
 /**
  * Sticky, responsive editor toolbar (tablet + desktop).
+ * Sticky pin is applied by the Editor shell (`.omid-toolbar-sticky-top`).
  * Mobile uses MobileToolbar instead.
  */
 export function Toolbar({ className, toolbarExtra }) {
@@ -64,7 +65,7 @@ export function Toolbar({ className, toolbarExtra }) {
       role="toolbar"
       aria-label="Formatting toolbar"
       className={cn(
-        'omid-toolbar sticky top-0 z-20',
+        'omid-toolbar',
         'border-b border-[color:var(--editor-border)]',
         'bg-[color:var(--editor-toolbar)] backdrop-blur',
         'animate-[omid-slide-down_180ms_ease]',

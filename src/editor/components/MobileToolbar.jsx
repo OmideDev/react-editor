@@ -40,6 +40,7 @@ import { DirectionButton } from './Toolbar/DirectionButton'
 
 /**
  * Compact sticky mobile toolbar with a "More" overflow menu.
+ * Sticky positioning is handled by the Editor shell (`.omid-toolbar-sticky-bottom`).
  */
 export function MobileToolbar({
   className,
@@ -101,8 +102,8 @@ export function MobileToolbar({
       aria-label="Mobile formatting toolbar"
       className={cn(
         'omid-mobile-toolbar omid-toolbar',
-        sticky === 'bottom' && 'sticky bottom-0 z-20 mt-auto border-t',
-        sticky === 'top' && 'sticky top-0 z-20 border-b',
+        sticky === 'bottom' && 'border-t',
+        sticky === 'top' && 'border-b',
         'border-[color:var(--editor-border)] bg-[color:var(--editor-toolbar)] backdrop-blur',
         'animate-[omid-slide-up_180ms_ease]',
         className,
