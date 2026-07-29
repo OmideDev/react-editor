@@ -13,9 +13,18 @@ export {
   HistoryButtons,
   LinkButton,
   ImageButton,
+  MediaLibraryButton,
+  ToolbarExtra,
   FileButton,
   TableButtons,
 } from './components/Toolbar'
+export { useEditorFeatures } from './context/EditorFeaturesContext'
+export { useEditorUpload } from './context/EditorUploadContext'
+export { resolveFeatures, DEFAULT_FEATURES } from './utils/features'
+export {
+  EditorApiPlugin,
+  normalizeInsertImagePayload,
+} from './plugins/EditorApiPlugin'
 export { ToolbarTooltip } from './components/Toolbar/ToolbarTooltip'
 export { MobileToolbar } from './components/MobileToolbar'
 export { LoadingOverlay } from './components/LoadingOverlay'
@@ -115,6 +124,8 @@ export {
   $isImageNode,
   INSERT_IMAGE_COMMAND,
   DELETE_IMAGE_COMMAND,
+  IMAGE_ALIGNS,
+  normalizeImageAlign,
 } from './nodes/ImageNode'
 export {
   MentionNode,

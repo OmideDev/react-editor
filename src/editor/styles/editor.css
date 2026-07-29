@@ -328,14 +328,70 @@
 }
 
 .omid-editor-image {
-  display: inline-block;
+  display: block;
+  width: 100%;
   max-width: 100%;
+}
+
+.omid-editor-image-align {
+  display: block;
+  width: 100%;
+}
+
+.omid-editor-image-align-left {
+  text-align: left;
+}
+
+.omid-editor-image-align-center {
+  text-align: center;
+}
+
+.omid-editor-image-align-right {
+  text-align: right;
 }
 
 .omid-editor-image-wrapper {
   max-width: 100%;
   vertical-align: top;
   transition: outline-color 0.15s ease;
+}
+
+.omid-editor-image-align-toolbar {
+  position: absolute;
+  top: -2.4rem;
+  left: 50%;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--editor-border, #e2e8f0);
+  background: var(--editor-popover, #ffffff);
+  box-shadow: 0 4px 14px rgb(15 23 42 / 0.12);
+  transform: translateX(-50%);
+  animation: omid-fade-in 140ms ease;
+}
+
+.omid-editor-image-align-btn {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.45rem;
+  color: var(--editor-muted, #64748b);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.omid-editor-image-align-btn:hover {
+  background: var(--editor-hover, #f1f5f9);
+  color: var(--editor-text, #0f172a);
+}
+
+.omid-editor-image-align-btn.is-active {
+  background: var(--editor-active, #0f172a);
+  color: #fff;
 }
 
 .omid-editor-image-media {

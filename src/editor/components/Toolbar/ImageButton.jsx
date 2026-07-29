@@ -1,31 +1,37 @@
 import { useState } from 'react'
-import { Image as ImageIcon } from 'lucide-react'
+import { ImagePlus } from 'lucide-react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { MediaLibrary } from '../MediaLibrary'
+import { ImageUploader } from '../ImageUploader'
 import { INSERT_IMAGE_COMMAND } from '../../nodes/ImageNode'
+import { useEditorFeatures } from '../../context/EditorFeaturesContext'
 import { ToolbarButton } from './ToolbarButton'
 
 /**
- * Opens the media library to pick / upload an image.
+ * Direct image upload from the toolbar (file picker → onImageUpload → insert).
+ * Separate from MediaLibraryButton / onOpenMediaLibrary.
  */
 export function ImageButton({ className }) {
   const [editor] = useLexicalComposerContext()
+  const { imageUpload } = useEditorFeatures()
   const [open, setOpen] = useState(false)
+
+  if (!imageUpload) return null
 
   return (
     <>
       <ToolbarButton
-        icon={ImageIcon}
-        label="Image"
+        icon={ImagePlus}
+        label="Upload image"
         active={open}
         onClick={() => setOpen(true)}
         className={className}
       />
-      <MediaLibrary
+      <ImageUploader
         open={open}
         onOpenChange={setOpen}
         onInsert={(payload) => {
           editor.dispatchCommand(INSERT_IMAGE_COMMAND, payload)
+          setOpen(false)
         }}
       />
     </>

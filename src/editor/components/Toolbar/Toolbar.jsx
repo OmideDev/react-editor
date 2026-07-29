@@ -14,17 +14,20 @@ import {
   TEXT_COLORS,
 } from '../../utils/colors'
 import { cn } from '../../../lib/utils'
+import { useEditorFeatures } from '../../context/EditorFeaturesContext'
 import { BlockButtons } from './BlockButtons'
 import { ColorPicker } from './ColorPicker'
 import { HeadingSelector } from './HeadingSelector'
 import { HistoryButtons } from './HistoryButtons'
 import { ImageButton } from './ImageButton'
+import { MediaLibraryButton } from './MediaLibraryButton'
 import { LinkButton } from './LinkButton'
 import { ListButtons } from './ListButtons'
 import { FileButton } from './FileButton'
 import { TableButtons } from './TableButtons'
 import { DirectionButton } from './DirectionButton'
 import { ToolbarButton } from './ToolbarButton'
+import { ToolbarExtra } from './ToolbarExtra'
 import { ToolbarGroup } from './ToolbarGroup'
 import { EmojiPicker } from '../EmojiPicker'
 
@@ -32,7 +35,7 @@ import { EmojiPicker } from '../EmojiPicker'
  * Sticky, responsive editor toolbar (tablet + desktop).
  * Mobile uses MobileToolbar instead.
  */
-export function Toolbar({ className }) {
+export function Toolbar({ className, toolbarExtra }) {
   const {
     blockType,
     isBold,
@@ -54,6 +57,7 @@ export function Toolbar({ className }) {
     clearHighlight,
     clearBackgroundColor,
   } = useEditorCommands()
+  const features = useEditorFeatures()
 
   return (
     <div
@@ -152,13 +156,21 @@ export function Toolbar({ className }) {
         <ToolbarGroup label="Media">
           <LinkButton />
           <ImageButton />
-          <FileButton className="hidden sm:inline-flex" />
-          <EmojiPicker className="hidden sm:inline-flex" />
+          <MediaLibraryButton />
+          {features.files !== false ? (
+            <FileButton className="hidden sm:inline-flex" />
+          ) : null}
+          {features.emoji !== false ? (
+            <EmojiPicker className="hidden sm:inline-flex" />
+          ) : null}
+          <ToolbarExtra items={toolbarExtra} />
         </ToolbarGroup>
 
-        <ToolbarGroup label="Table" className="hidden lg:flex">
-          <TableButtons />
-        </ToolbarGroup>
+        {features.table !== false ? (
+          <ToolbarGroup label="Table" className="hidden lg:flex">
+            <TableButtons />
+          </ToolbarGroup>
+        ) : null}
 
         <ToolbarGroup label="History" showDivider={false}>
           <HistoryButtons />

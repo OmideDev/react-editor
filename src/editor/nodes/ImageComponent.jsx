@@ -11,16 +11,23 @@ import {
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
 } from 'lexical'
+import { AlignCenter, AlignLeft, AlignRight } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import {
   clampImageWidth,
   MAX_IMAGE_WIDTH,
   MIN_IMAGE_WIDTH,
 } from '../utils/image'
-import { $isImageNode, DELETE_IMAGE_COMMAND } from './ImageNode'
+import { $isImageNode, DELETE_IMAGE_COMMAND, normalizeImageAlign } from './ImageNode'
+
+const ALIGN_OPTIONS = [
+  { value: 'left', icon: AlignLeft, label: 'Align left' },
+  { value: 'center', icon: AlignCenter, label: 'Align center' },
+  { value: 'right', icon: AlignRight, label: 'Align right' },
+]
 
 /**
- * Decorative React UI for ImageNode: selection, resize, caption.
+ * Decorative React UI for ImageNode: selection, resize, caption, alignment.
  */
 export function ImageComponent({
   src,
@@ -28,6 +35,7 @@ export function ImageComponent({
   width,
   height,
   caption,
+  align: alignProp = 'left',
   nodeKey,
 }) {
   const [editor] = useLexicalComposerContext()
@@ -35,6 +43,7 @@ export function ImageComponent({
     useLexicalNodeSelection(nodeKey)
   const [isResizing, setIsResizing] = useState(false)
   const [localCaption, setLocalCaption] = useState(caption || '')
+  const align = normalizeImageAlign(alignProp)
   const imageRef = useRef(null)
   const containerRef = useRef(null)
   const aspectRatioRef = useRef(1)
@@ -117,6 +126,18 @@ export function ImageComponent({
     [editor, nodeKey],
   )
 
+  const setAlign = useCallback(
+    (nextAlign) => {
+      editor.update(() => {
+        const node = $getNodeByKey(nodeKey)
+        if ($isImageNode(node)) {
+          node.setAlign(nextAlign)
+        }
+      })
+    },
+    [editor, nodeKey],
+  )
+
   const onResizeStart = useCallback(
     (event, direction) => {
       event.preventDefault()
@@ -170,71 +191,112 @@ export function ImageComponent({
 
   const displayWidth = width === 'inherit' ? undefined : width
   const displayHeight = height === 'inherit' ? undefined : height
+  const showControls = isSelected || isResizing
 
   return (
     <span
-      ref={containerRef}
-      draggable={false}
       className={cn(
-        'omid-editor-image-wrapper group relative my-3 inline-block max-w-full',
-        (isSelected || isResizing) && 'omid-editor-image-selected',
+        'omid-editor-image-align block w-full',
+        align === 'left' && 'omid-editor-image-align-left',
+        align === 'center' && 'omid-editor-image-align-center',
+        align === 'right' && 'omid-editor-image-align-right',
       )}
+      data-align={align}
     >
-      <img
-        ref={imageRef}
-        src={src}
-        alt={altText}
-        width={displayWidth}
-        height={displayHeight}
+      <span
+        ref={containerRef}
         draggable={false}
         className={cn(
-          'omid-editor-image-media block h-auto max-w-full rounded-xl object-cover',
-          'border border-slate-200 bg-slate-50 dark:border-slate-700',
+          'omid-editor-image-wrapper group relative my-3 inline-block max-w-full',
+          showControls && 'omid-editor-image-selected',
         )}
-        style={{
-          width: displayWidth ? `${displayWidth}px` : '100%',
-          maxWidth: '100%',
-          height: 'auto',
-        }}
-      />
-
-      {(isSelected || isResizing) && (
-        <>
+      >
+        {showControls ? (
           <span
-            role="presentation"
-            onPointerDown={(event) => onResizeStart(event, 'left')}
-            className="omid-editor-image-handle omid-editor-image-handle-left"
-          />
-          <span
-            role="presentation"
-            onPointerDown={(event) => onResizeStart(event, 'right')}
-            className="omid-editor-image-handle omid-editor-image-handle-right"
-          />
-        </>
-      )}
+            role="toolbar"
+            aria-label="Image alignment"
+            className="omid-editor-image-align-toolbar"
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            {ALIGN_OPTIONS.map(({ value, icon: Icon, label }) => (
+              <button
+                key={value}
+                type="button"
+                aria-label={label}
+                aria-pressed={align === value}
+                title={label}
+                className={cn(
+                  'omid-editor-image-align-btn',
+                  align === value && 'is-active',
+                )}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setAlign(value)
+                }}
+              >
+                <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+              </button>
+            ))}
+          </span>
+        ) : null}
 
-      <input
-        type="text"
-        value={localCaption}
-        placeholder="Add a caption (optional)"
-        aria-label="Image caption"
-        onMouseDown={(event) => event.stopPropagation()}
-        onChange={(event) => setLocalCaption(event.target.value)}
-        onBlur={commitCaption}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            event.currentTarget.blur()
-          }
-        }}
-        className={cn(
-          'omid-editor-image-caption mt-2 w-full rounded-lg border border-transparent bg-transparent px-1 py-1',
-          'text-center text-sm text-slate-600 outline-none',
-          'placeholder:text-slate-400',
-          'focus:border-slate-200 focus:bg-white dark:text-slate-300',
-          'dark:focus:border-slate-600 dark:focus:bg-slate-900',
-        )}
-      />
+        <img
+          ref={imageRef}
+          src={src}
+          alt={altText}
+          width={displayWidth}
+          height={displayHeight}
+          draggable={false}
+          className={cn(
+            'omid-editor-image-media block h-auto max-w-full rounded-xl object-cover',
+            'border border-slate-200 bg-slate-50 dark:border-slate-700',
+          )}
+          style={{
+            width: displayWidth ? `${displayWidth}px` : '100%',
+            maxWidth: '100%',
+            height: 'auto',
+          }}
+        />
+
+        {showControls ? (
+          <>
+            <span
+              role="presentation"
+              onPointerDown={(event) => onResizeStart(event, 'left')}
+              className="omid-editor-image-handle omid-editor-image-handle-left"
+            />
+            <span
+              role="presentation"
+              onPointerDown={(event) => onResizeStart(event, 'right')}
+              className="omid-editor-image-handle omid-editor-image-handle-right"
+            />
+          </>
+        ) : null}
+
+        <input
+          type="text"
+          value={localCaption}
+          placeholder="Add a caption (optional)"
+          aria-label="Image caption"
+          onMouseDown={(event) => event.stopPropagation()}
+          onChange={(event) => setLocalCaption(event.target.value)}
+          onBlur={commitCaption}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              event.currentTarget.blur()
+            }
+          }}
+          className={cn(
+            'omid-editor-image-caption mt-2 w-full rounded-lg border border-transparent bg-transparent px-1 py-1',
+            'text-center text-sm text-slate-600 outline-none',
+            'placeholder:text-slate-400',
+            'focus:border-slate-200 focus:bg-white dark:text-slate-300',
+            'dark:focus:border-slate-600 dark:focus:bg-slate-900',
+          )}
+        />
+      </span>
     </span>
   )
 }

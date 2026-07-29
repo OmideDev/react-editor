@@ -34,6 +34,8 @@ import { ColorPicker } from './Toolbar/ColorPicker'
 import { ToolbarButton } from './Toolbar/ToolbarButton'
 import { LinkButton } from './Toolbar/LinkButton'
 import { ImageButton } from './Toolbar/ImageButton'
+import { MediaLibraryButton } from './Toolbar/MediaLibraryButton'
+import { ToolbarExtra } from './Toolbar/ToolbarExtra'
 import { DirectionButton } from './Toolbar/DirectionButton'
 
 /**
@@ -42,6 +44,7 @@ import { DirectionButton } from './Toolbar/DirectionButton'
 export function MobileToolbar({
   className,
   sticky = 'bottom',
+  toolbarExtra,
 }) {
   const {
     isBold,
@@ -135,6 +138,8 @@ export function MobileToolbar({
         />
         <LinkButton className="h-10 w-10" />
         <ImageButton className="h-10 w-10" />
+        <MediaLibraryButton className="h-10 w-10" />
+        <ToolbarExtra items={toolbarExtra} className="h-10 w-10" />
 
         <span
           aria-hidden="true"

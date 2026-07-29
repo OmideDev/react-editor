@@ -51,6 +51,7 @@ export function ImagePlugin() {
             width: payload.width ?? 'inherit',
             height: payload.height ?? 'inherit',
             caption: payload.caption || '',
+            align: payload.align || 'left',
           })
 
           $insertNodeToNearestRoot(imageNode)

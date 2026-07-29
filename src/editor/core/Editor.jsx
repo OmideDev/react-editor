@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { forwardRef, useCallback, useMemo, useState } from 'react'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -7,6 +7,7 @@ import { MobileToolbar } from '../components/MobileToolbar'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 import { EditorStats } from '../components/EditorStats'
 import { MediaLibrary } from '../components/MediaLibrary'
+import { ImageUploader } from '../components/ImageUploader'
 import { TextFormattingPlugin } from '../plugins/TextFormattingPlugin'
 import { HeadingPlugin } from '../plugins/HeadingPlugin'
 import { ListPlugin } from '../plugins/ListPlugin'
@@ -25,12 +26,17 @@ import { VideoPlugin } from '../plugins/VideoPlugin'
 import { FilePlugin } from '../plugins/FilePlugin'
 import { CodePlugin } from '../plugins/CodePlugin'
 import { CharacterLimitPlugin } from '../plugins/CharacterLimitPlugin'
+import { EditorApiPlugin } from '../plugins/EditorApiPlugin'
 import { AutoSavePlugin } from '../hooks/useAutoSave'
 import { EditorProvider } from './EditorProvider'
 import { EditorErrorBoundary } from './EditorErrorBoundary'
 import { ThemeProvider } from '../theme/ThemeProvider'
 import { DirectionControlProvider, useEditorDirection } from '../context/DirectionControlContext'
-import { EditorUploadProvider } from '../context/EditorUploadContext'
+import { EditorUploadProvider, useEditorUpload } from '../context/EditorUploadContext'
+import {
+  EditorFeaturesProvider,
+  useEditorFeatures,
+} from '../context/EditorFeaturesContext'
 import { useTheme } from '../hooks/useTheme'
 import { getInitialEditorState } from '../utils/import'
 import { INSERT_IMAGE_COMMAND } from '../nodes/ImageNode'
@@ -95,12 +101,28 @@ function MediaLibraryBridge({ open, onOpenChange }) {
   )
 }
 
+function ImageUploaderBridge({ open, onOpenChange }) {
+  const [editor] = useLexicalComposerContext()
+
+  return (
+    <ImageUploader
+      open={open}
+      onOpenChange={onOpenChange}
+      onInsert={(payload) => {
+        editor.dispatchCommand(INSERT_IMAGE_COMMAND, payload)
+        onOpenChange?.(false)
+      }}
+    />
+  )
+}
+
 function EditorSurface({
   className,
   contentClassName,
   placeholder,
   toolbar,
   mobileToolbar = true,
+  toolbarExtra,
   value,
   onChange,
   onJSONChange,
@@ -110,20 +132,43 @@ function EditorSurface({
   autoSave,
   mentions = [],
   maxCharacters,
-  video = true,
-  files = true,
-  showStats = true,
+  apiRef,
+  onReady,
 }) {
   const { style: themeStyle, resolved, isDark } = useTheme()
   const { direction: resolvedDirection, isRTL } = useEditorDirection()
+  const features = useEditorFeatures()
+  const { onOpenMediaLibrary } = useEditorUpload()
   const [mediaOpen, setMediaOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null)
 
   const placeholderText = resolvePlaceholder(placeholder, isRTL)
+  const hasExternalLibrary = typeof onOpenMediaLibrary === 'function'
+  const showInternalLibrary = features.mediaLibrary && !hasExternalLibrary
 
   const handleSaveStatus = useCallback((next) => {
     setSaveStatus(next)
   }, [])
+
+  const handleOpenImageFromSlash = useCallback(() => {
+    if (hasExternalLibrary) {
+      onOpenMediaLibrary()
+      return
+    }
+    if (showInternalLibrary) {
+      setMediaOpen(true)
+      return
+    }
+    if (features.imageUpload) {
+      setUploadOpen(true)
+    }
+  }, [
+    features.imageUpload,
+    hasExternalLibrary,
+    onOpenMediaLibrary,
+    showInternalLibrary,
+  ])
 
   return (
     <div
@@ -141,7 +186,7 @@ function EditorSurface({
     >
       {toolbar !== false ? (
         <div className="omid-toolbar-desktop hidden sm:block">
-          {toolbar ?? <Toolbar />}
+          {toolbar ?? <Toolbar toolbarExtra={toolbarExtra} />}
         </div>
       ) : null}
 
@@ -161,7 +206,7 @@ function EditorSurface({
         <SaveIndicator status={saveStatus} />
       </div>
 
-      {showStats !== false ? (
+      {features.stats !== false ? (
         <EditorStats maxCharacters={maxCharacters} />
       ) : null}
 
@@ -170,11 +215,12 @@ function EditorSurface({
           {typeof mobileToolbar === 'object' ? (
             mobileToolbar
           ) : (
-            <MobileToolbar sticky="bottom" />
+            <MobileToolbar sticky="bottom" toolbarExtra={toolbarExtra} />
           )}
         </div>
       ) : null}
 
+      <EditorApiPlugin apiRef={apiRef} onReady={onReady} />
       <TextFormattingPlugin />
       <HeadingPlugin />
       <ListPlugin />
@@ -186,11 +232,16 @@ function EditorSurface({
       <EditingExperiencePlugin />
       <CodePlugin />
       <MarkdownShortcutPlugin />
-      <SlashCommandPlugin onOpenImageUploader={() => setMediaOpen(true)} />
-      <MentionPlugin mentions={mentions} enabled={mentions?.length > 0} />
-      <TablePlugin />
-      <VideoPlugin enabled={video !== false} />
-      <FilePlugin enabled={files !== false} />
+      {features.slashCommands !== false ? (
+        <SlashCommandPlugin onOpenImageUploader={handleOpenImageFromSlash} />
+      ) : null}
+      <MentionPlugin
+        mentions={mentions}
+        enabled={features.mentions !== false && mentions?.length > 0}
+      />
+      {features.table !== false ? <TablePlugin /> : null}
+      <VideoPlugin enabled={features.video !== false} />
+      <FilePlugin enabled={features.files !== false} />
       <CharacterLimitPlugin maxCharacters={maxCharacters} />
       <AutoSavePlugin autoSave={autoSave} onStatusChange={handleSaveStatus} />
       <EditorValuePlugin
@@ -199,38 +250,55 @@ function EditorSurface({
         onJSONChange={onJSONChange}
         onHTMLChange={onHTMLChange}
       />
-      <MediaLibraryBridge open={mediaOpen} onOpenChange={setMediaOpen} />
+      {showInternalLibrary ? (
+        <MediaLibraryBridge open={mediaOpen} onOpenChange={setMediaOpen} />
+      ) : null}
+      {features.imageUpload ? (
+        <ImageUploaderBridge open={uploadOpen} onOpenChange={setUploadOpen} />
+      ) : null}
     </div>
   )
 }
 
 /**
  * Self-contained rich text editor shell.
+ *
+ * Media ownership stays with the host:
+ * - onImageUpload(file) → direct upload
+ * - onOpenMediaLibrary() → open external picker
+ * - ref.insertImage({ url, alt }) → insert selection result
  */
-export function Editor({
-  className,
-  contentClassName,
-  placeholder,
-  initialConfig,
-  toolbar,
-  mobileToolbar,
-  value,
-  onChange,
-  onJSONChange,
-  onHTMLChange,
-  theme = 'light',
-  direction = 'ltr',
-  loading = false,
-  loadingLabel,
-  autoSave,
-  mentions,
-  maxCharacters,
-  video = true,
-  files = true,
-  showStats = true,
-  onImageUpload,
-  onFileUpload,
-}) {
+export const Editor = forwardRef(function Editor(
+  {
+    className,
+    contentClassName,
+    placeholder,
+    initialConfig,
+    toolbar,
+    mobileToolbar,
+    toolbarExtra,
+    value,
+    onChange,
+    onJSONChange,
+    onHTMLChange,
+    theme = 'light',
+    direction = 'ltr',
+    loading = false,
+    loadingLabel,
+    autoSave,
+    mentions,
+    maxCharacters,
+    features,
+    video = true,
+    files = true,
+    showStats = true,
+    onImageUpload,
+    onFileUpload,
+    onOpenMediaLibrary,
+    onReady,
+  },
+  ref,
+) {
   const initialEditorState = useMemo(
     () => getInitialEditorState(value) ?? initialConfig?.editorState,
     // Intentionally mount-only for LexicalComposer initial state.
@@ -252,30 +320,39 @@ export function Editor({
         <EditorUploadProvider
           onImageUpload={onImageUpload}
           onFileUpload={onFileUpload}
+          onOpenMediaLibrary={onOpenMediaLibrary}
         >
-          <DirectionControlProvider direction={direction}>
-            <EditorSurface
-              className={className}
-              contentClassName={contentClassName}
-              placeholder={placeholder}
-              toolbar={toolbar}
-              mobileToolbar={mobileToolbar}
-              value={value}
-              onChange={onChange}
-              onJSONChange={onJSONChange}
-              onHTMLChange={onHTMLChange}
-              loading={loading}
-              loadingLabel={loadingLabel}
-              autoSave={autoSave}
-              mentions={mentions}
-              maxCharacters={maxCharacters}
-              video={video}
-              files={files}
-              showStats={showStats}
-            />
-          </DirectionControlProvider>
+          <EditorFeaturesProvider
+            features={features}
+            onOpenMediaLibrary={onOpenMediaLibrary}
+            video={video}
+            files={files}
+            showStats={showStats}
+          >
+            <DirectionControlProvider direction={direction}>
+              <EditorSurface
+                className={className}
+                contentClassName={contentClassName}
+                placeholder={placeholder}
+                toolbar={toolbar}
+                mobileToolbar={mobileToolbar}
+                toolbarExtra={toolbarExtra}
+                value={value}
+                onChange={onChange}
+                onJSONChange={onJSONChange}
+                onHTMLChange={onHTMLChange}
+                loading={loading}
+                loadingLabel={loadingLabel}
+                autoSave={autoSave}
+                mentions={mentions}
+                maxCharacters={maxCharacters}
+                apiRef={ref}
+                onReady={onReady}
+              />
+            </DirectionControlProvider>
+          </EditorFeaturesProvider>
         </EditorUploadProvider>
       </EditorProvider>
     </ThemeProvider>
   )
-}
+})

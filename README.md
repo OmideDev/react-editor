@@ -2,7 +2,7 @@
 
 A modern Lexical-based rich text editor for React.
 
-**v0.2.1** · React 18 / 19 · JavaScript & TypeScript · Vite · Next.js · SSR-friendly
+**v0.3.1** · React 18 / 19 · JavaScript & TypeScript · Vite · Next.js · SSR-friendly
 
 ```bash
 npm install @omidtz/react-editor
@@ -42,11 +42,21 @@ import "@omidtz/react-editor/style.css";
 - File attachments (PDF, DOC, DOCX, ZIP, TXT)
 - Video embed (YouTube, Vimeo, generic embed URL)
 
-### Media
-- **Media Library** (WordPress-style): Library + Upload tabs, search, details (title / alt), delete, insert
-- Local browser storage by default
-- Optional `onImageUpload` / `onFileUpload` for your API
-- Image resize & caption in the editor
+### Media (host-owned)
+The editor does **not** own your File Manager. It only exposes clean hooks:
+
+| Path | Purpose |
+| --- | --- |
+| `onImageUpload(file)` | Direct upload from toolbar / drag-drop / paste |
+| `onOpenMediaLibrary()` | Open your external media picker |
+| `ref.insertImage({ url, alt, align? })` | Insert the selected asset into the document |
+
+Also built into images:
+- **Resize** handles when selected
+- **Caption** field under the image
+- **Alignment** toolbar: left / center / right (persisted in JSON + HTML)
+
+Built-in localStorage Media Library is **optional** and turns off automatically when you pass `onOpenMediaLibrary` (or set `features.mediaLibrary: false`).
 
 ### UX / UI
 - Responsive toolbar (desktop / tablet / mobile)
@@ -104,15 +114,152 @@ function App() {
 | `autoSave` | `{ enabled?, delay?, onSave }` | — | Debounced save (see below) |
 | `mentions` | `{ id, name, username }[]` | `[]` | Users for `@` mention menu |
 | `maxCharacters` | `number` | — | Soft character limit + stats display |
-| `video` | `boolean` | `true` | Enable video paste/embed |
-| `files` | `boolean` | `true` | Enable file attachments |
-| `showStats` | `boolean` | `true` | Word / character / reading-time bar |
-| `onImageUpload` | `(file) => Promise<string>` | — | Returns image URL for Media Library uploads |
+| `features` | `object` | see below | Feature flags (preferred over legacy booleans) |
+| `video` | `boolean` | `true` | Legacy alias for `features.video` |
+| `files` | `boolean` | `true` | Legacy alias for `features.files` |
+| `showStats` | `boolean` | `true` | Legacy alias for `features.stats` |
+| `onImageUpload` | `(file) => Promise<string>` | — | Direct file upload → returns image URL |
 | `onFileUpload` | `(file) => Promise<string \| FileInfo>` | — | Returns URL or file info |
+| `onOpenMediaLibrary` | `() => void` | — | Toolbar Images icon calls this; host opens its picker |
+| `onReady` | `(api) => void` | — | Receives `{ insertImage, getEditor, focus }` |
+| `toolbarExtra` | `{ id, icon?, label?, onClick?, active? }[]` | — | Extra toolbar buttons |
 | `toolbar` | `ReactNode \| false` | default | Custom toolbar or `false` to hide |
 | `mobileToolbar` | `ReactNode \| false` | default | Custom mobile toolbar or `false` |
 | `className` | `string` | — | Container class |
 | `contentClassName` | `string` | — | ContentEditable class |
+| `ref` | `EditorHandle` | — | Imperative API (`insertImage`, …) |
+
+### `features`
+
+```js
+features={{
+  mediaLibrary: false, // built-in localStorage library
+  imageUpload: true,   // direct upload button (ImageUploader)
+  files: false,
+  video: false,
+  emoji: true,
+  slashCommands: true,
+  stats: false,
+  mentions: true,
+  table: true,
+}}
+```
+
+When `onOpenMediaLibrary` is passed, `mediaLibrary` defaults to `false` unless you explicitly set `features.mediaLibrary: true`.
+
+---
+
+## External media library (recommended for Surena / apps with a File Manager)
+
+```jsx
+import { useRef, useState } from "react";
+import { Editor } from "@omidtz/react-editor";
+
+function ArticleEditor() {
+  const editorRef = useRef(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+
+  return (
+    <>
+      <Editor
+        ref={editorRef}
+        features={{ mediaLibrary: false, imageUpload: true }}
+        onImageUpload={async (file) => {
+          // upload to your File Manager API
+          const uploaded = await uploadToFileManager(file);
+          return uploaded.url;
+        }}
+        onOpenMediaLibrary={() => setLibraryOpen(true)}
+      />
+
+      <YourMediaLibraryModal
+        open={libraryOpen}
+        onClose={() => setLibraryOpen(false)}
+        onSelect={(media) => {
+          editorRef.current?.insertImage({
+            url: media.url,
+            alt: media.altText,
+            align: "center", // optional: "left" | "center" | "right"
+          });
+          setLibraryOpen(false);
+        }}
+      />
+    </>
+  );
+}
+```
+
+**Flow**
+
+```
+Toolbar Images icon
+        │
+        ▼
+onOpenMediaLibrary()
+        │
+        ▼
+Host MediaLibraryModal
+        │
+        ▼
+editorRef.insertImage({ url, alt, align? })
+```
+
+Alternatively, use `onReady`:
+
+```jsx
+<Editor
+  onOpenMediaLibrary={openModal}
+  onReady={(api) => {
+    mediaApiRef.current = api; // api.insertImage(...)
+  }}
+/>
+```
+
+### `insertImage` payload
+
+```ts
+editorRef.current.insertImage({
+  url: string,       // or src
+  alt?: string,      // or altText / title
+  width?: number | "inherit",
+  height?: number | "inherit",
+  caption?: string,
+  align?: "left" | "center" | "right", // default: "left"
+})
+```
+
+### Image alignment
+
+Select an image in the editor to show a floating toolbar with **left / center / right**.
+
+- Stored on the node as `align` in Lexical JSON
+- Exported HTML uses `text-align` (+ `data-align`) on the wrapping `div` / `figure`
+- Default: `"left"`
+
+```jsx
+editorRef.current.insertImage({
+  url: "https://cdn.example.com/a.jpg",
+  alt: "Demo",
+  align: "center",
+})
+```
+
+### Optional `toolbarExtra`
+
+```jsx
+<Editor
+  toolbarExtra={[
+    {
+      id: "custom-action",
+      icon: "FolderOpen", // lucide name or component
+      label: "Custom",
+      onClick: () => doSomething(),
+    },
+  ]}
+/>
+```
+
+Built-in icon names: `Images`, `Image`, `FolderOpen`, `FileText`, `Smile`, `Video`, `Table`, `Link`, …
 
 ---
 
@@ -191,12 +338,11 @@ Type `@` to open the mention menu (search + keyboard navigation).
 <Editor maxCharacters={5000} showStats />
 ```
 
-### Image upload (Media Library → your API)
-
-By default, images stay in the browser (`localStorage` media library). Wire your server like this:
+### Direct image upload only
 
 ```jsx
 <Editor
+  features={{ mediaLibrary: false }}
   onImageUpload={async (file) => {
     const formData = new FormData();
     formData.append("image", file);
@@ -213,7 +359,17 @@ By default, images stay in the browser (`localStorage` media library). Wire your
 />
 ```
 
-**Flow:** Toolbar Image → Media Library → Upload or pick existing → Insert into editor.
+Toolbar **Upload image** opens the ImageUploader. Paste / drag-drop still go through `onImageUpload` when provided.
+
+### Built-in Media Library (optional)
+
+Default when you do **not** pass `onOpenMediaLibrary`:
+
+```jsx
+<Editor features={{ mediaLibrary: true }} onImageUpload={uploadFn} />
+```
+
+Stores items in `localStorage` (`omid-editor-media-library`). Prefer an external library for production apps with a central File Manager.
 
 ### File upload
 
@@ -237,11 +393,13 @@ Or return a plain URL string.
 
 Paste a YouTube / Vimeo (or embed) URL — it becomes a responsive video block (replace / remove supported).
 
-Disable with `video={false}`.
+Disable with `features={{ video: false }}` or `video={false}`.
 
 ### Slash commands
 
 Type `/` for: Heading 1–2, lists, checklist, quote, divider, image, table, code block.
+
+Disable with `features={{ slashCommands: false }}`.
 
 ### Markdown shortcuts
 
@@ -258,6 +416,7 @@ import {
   Editor,
   EditorProvider,
   Toolbar,
+  MediaLibraryButton,
   exportJSON,
   exportHTML,
   exportEditorValue,
@@ -269,7 +428,7 @@ import {
 
 ### Hooks & theme (advanced)
 
-Also exported: `useEditorCommands`, `useEditorValue`, `useTheme`, `useDirection`, `useAutoSave`, plugins, nodes, and utils for extension.
+Also exported: `useEditorCommands`, `useEditorValue`, `useTheme`, `useDirection`, `useEditorFeatures`, `useEditorUpload`, `useAutoSave`, `IMAGE_ALIGNS`, `normalizeImageAlign`, plugins, nodes, and utils for extension.
 
 ---
 
@@ -282,8 +441,9 @@ Also exported: `useEditorCommands`, `useEditorValue`, `useTheme`, `useDirection`
   <li>Item</li>
 </ul>
 <blockquote>Quote</blockquote>
-<figure>
-  <img src="https://cdn.example.com/a.jpg" alt="Demo" />
+<figure data-omid-image="true" data-align="center" style="text-align: center;">
+  <img src="https://cdn.example.com/a.jpg" alt="Demo" data-align="center" />
+  <figcaption>Optional caption</figcaption>
 </figure>
 ```
 
@@ -315,10 +475,9 @@ npm run build:demo   # demo app → dist-demo/
 
 ## Roadmap
 
-- Server-backed Media Library adapters (folders, pagination API)
+- Stronger public plugin API
 - Collaboration / comments
 - Revision history
-- Stronger public plugin API
 - Official TypeScript `.d.ts` packaging polish
 
 ---
