@@ -53,7 +53,7 @@ export function $getLinkData() {
     return {
       isLink: false,
       url: '',
-      openInNewTab: true,
+      openInNewTab: false,
     }
   }
 
@@ -62,6 +62,6 @@ export function $getLinkData() {
   return {
     isLink: true,
     url: link.getURL(),
-    openInNewTab: target === '_blank' || target == null,
+    openInNewTab: target === '_blank',
   }
 }

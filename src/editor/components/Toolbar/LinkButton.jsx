@@ -13,7 +13,6 @@ export function LinkButton({ className }) {
   const {
     isLink,
     linkUrl,
-    linkOpenInNewTab,
     applyLink,
     removeLink,
   } = useEditorCommands()
@@ -34,7 +33,6 @@ export function LinkButton({ className }) {
         onOpenChange={setOpen}
         anchorRef={anchorRef}
         url={linkUrl}
-        openInNewTab={linkOpenInNewTab}
         isLink={isLink}
         onApply={applyLink}
         onRemove={removeLink}

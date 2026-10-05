@@ -28,6 +28,7 @@ import {
 } from '../plugins/BlockPlugin'
 import { $getLinkData } from '../plugins/LinkPlugin'
 import { TOGGLE_LINK_COMMAND } from '@lexical/link'
+import { isValidUrl, normalizeUrl } from '../utils/url'
 
 const initialFormats = {
   bold: false,
@@ -50,7 +51,7 @@ export function useEditorCommands() {
   const [linkState, setLinkState] = useState({
     isLink: false,
     url: '',
-    openInNewTab: true,
+    openInNewTab: false,
   })
 
   useEffect(() => {
@@ -65,7 +66,7 @@ export function useEditorCommands() {
           setTextColorState('')
           setBackgroundColorState('')
           setIsQuote(false)
-          setLinkState({ isLink: false, url: '', openInNewTab: true })
+          setLinkState({ isLink: false, url: '', openInNewTab: false })
           return
         }
 
@@ -176,9 +177,12 @@ export function useEditorCommands() {
   }, [editor])
 
   const applyLink = useCallback(
-    ({ url, openInNewTab = true }) => {
+    ({ url, openInNewTab = false }) => {
+      const normalized = normalizeUrl(url)
+      if (!isValidUrl(normalized)) return
+
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, {
-        url,
+        url: normalized,
         target: openInNewTab ? '_blank' : null,
         rel: openInNewTab ? 'noopener noreferrer' : null,
       })

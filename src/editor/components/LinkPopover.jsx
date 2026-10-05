@@ -1,9 +1,60 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ExternalLink, Link2, Trash2, X } from 'lucide-react'
+import { Link2, Trash2, X } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { isValidUrl, normalizeUrl } from '../utils/url'
 import { useTheme } from '../hooks/useTheme'
+
+const POPOVER_GAP = 6
+const VIEWPORT_PADDING = 8
+/** Fallback height before the menu has measured itself. */
+const ESTIMATED_MENU_HEIGHT = 220
+
+/**
+ * Keep the link popover inside the visible viewport (incl. mobile keyboard).
+ * Prefer below the anchor; flip above when there is not enough space below.
+ */
+function getPopoverPosition(anchorRect, menuHeight, menuWidth) {
+  const viewportWidth =
+    window.visualViewport?.width ?? document.documentElement.clientWidth
+  const viewportHeight =
+    window.visualViewport?.height ?? document.documentElement.clientHeight
+  const offsetTop = window.visualViewport?.offsetTop ?? 0
+  const offsetLeft = window.visualViewport?.offsetLeft ?? 0
+
+  const width = Math.min(menuWidth, viewportWidth - VIEWPORT_PADDING * 2)
+  let left = anchorRect.left
+
+  if (left + width > offsetLeft + viewportWidth - VIEWPORT_PADDING) {
+    left = Math.max(
+      offsetLeft + VIEWPORT_PADDING,
+      offsetLeft + viewportWidth - width - VIEWPORT_PADDING,
+    )
+  } else {
+    left = Math.max(offsetLeft + VIEWPORT_PADDING, left)
+  }
+
+  const spaceBelow = offsetTop + viewportHeight - anchorRect.bottom - POPOVER_GAP
+  const spaceAbove = anchorRect.top - offsetTop - POPOVER_GAP
+  const placeBelow =
+    spaceBelow >= menuHeight || spaceBelow >= spaceAbove
+
+  let top = placeBelow
+    ? anchorRect.bottom + POPOVER_GAP
+    : anchorRect.top - menuHeight - POPOVER_GAP
+
+  const minTop = offsetTop + VIEWPORT_PADDING
+  const maxTop = offsetTop + viewportHeight - menuHeight - VIEWPORT_PADDING
+  top = Math.min(Math.max(top, minTop), Math.max(minTop, maxTop))
+
+  return {
+    position: 'fixed',
+    top,
+    left,
+    zIndex: 60,
+    width,
+  }
+}
 
 /**
  * Popover for inserting, editing, and removing links.
@@ -13,26 +64,30 @@ export function LinkPopover({
   onOpenChange,
   anchorRef,
   url: initialUrl = '',
-  openInNewTab: initialOpenInNewTab = true,
   isLink = false,
   onApply,
   onRemove,
 }) {
   const [url, setUrl] = useState(initialUrl)
-  const [openInNewTab, setOpenInNewTab] = useState(initialOpenInNewTab)
   const [error, setError] = useState('')
   const [menuStyle, setMenuStyle] = useState(null)
   const menuRef = useRef(null)
   const inputRef = useRef(null)
+  /** Last URL committed by real typing/paste — never chrome control labels. */
+  const committedUrlRef = useRef(initialUrl || '')
+  /** Ignore input mutations caused by tapping Apply on mobile. */
+  const ignoreInputMutationRef = useRef(false)
   const dialogId = useId()
   const { style: themeStyle } = useTheme()
 
   useEffect(() => {
     if (!open) return
-    setUrl(initialUrl || '')
-    setOpenInNewTab(initialOpenInNewTab)
+    const next = initialUrl || ''
+    committedUrlRef.current = next
+    setUrl(next)
     setError('')
-  }, [open, initialUrl, initialOpenInNewTab])
+    ignoreInputMutationRef.current = false
+  }, [open, initialUrl])
 
   useLayoutEffect(() => {
     if (!open || !anchorRef?.current) {
@@ -41,42 +96,38 @@ export function LinkPopover({
     }
 
     const updatePosition = () => {
-      const rect = anchorRef.current.getBoundingClientRect()
+      const rect = anchorRef.current?.getBoundingClientRect()
+      if (!rect) return
+
       const menuWidth = Math.min(320, window.innerWidth - 16)
-      const viewportPadding = 8
-      let left = rect.left
+      const menuHeight =
+        menuRef.current?.offsetHeight || ESTIMATED_MENU_HEIGHT
 
-      if (left + menuWidth > window.innerWidth - viewportPadding) {
-        left = Math.max(
-          viewportPadding,
-          window.innerWidth - menuWidth - viewportPadding,
-        )
-      }
-
-      setMenuStyle({
-        position: 'fixed',
-        top: rect.bottom + 6,
-        left,
-        zIndex: 60,
-        width: menuWidth,
-      })
+      setMenuStyle(getPopoverPosition(rect, menuHeight, menuWidth))
     }
 
     updatePosition()
+    const frame = requestAnimationFrame(updatePosition)
+
     window.addEventListener('resize', updatePosition)
     window.addEventListener('scroll', updatePosition, true)
+    window.visualViewport?.addEventListener('resize', updatePosition)
+    window.visualViewport?.addEventListener('scroll', updatePosition)
 
     return () => {
+      cancelAnimationFrame(frame)
       window.removeEventListener('resize', updatePosition)
       window.removeEventListener('scroll', updatePosition, true)
+      window.visualViewport?.removeEventListener('resize', updatePosition)
+      window.visualViewport?.removeEventListener('scroll', updatePosition)
     }
-  }, [open, anchorRef])
+  }, [open, anchorRef, error, isLink])
 
   useEffect(() => {
     if (!open) return undefined
 
     const frame = requestAnimationFrame(() => {
-      inputRef.current?.focus()
+      inputRef.current?.focus({ preventScroll: true })
       inputRef.current?.select()
     })
 
@@ -108,8 +159,47 @@ export function LinkPopover({
     return null
   }
 
+  const commitUrl = (value) => {
+    committedUrlRef.current = value
+    setUrl(value)
+  }
+
+  /**
+   * Mobile WebViews can append the label/text of the tapped control into the
+   * still-focused URL input. Snapshot the URL first, then blur + ignore
+   * subsequent input events through the click/toggle turn.
+   */
+  const freezeUrlForChrome = () => {
+    if (!ignoreInputMutationRef.current && inputRef.current) {
+      committedUrlRef.current = inputRef.current.value
+      setUrl(inputRef.current.value)
+    }
+
+    ignoreInputMutationRef.current = true
+    inputRef.current?.blur()
+
+    window.setTimeout(() => {
+      ignoreInputMutationRef.current = false
+      if (inputRef.current?.value !== committedUrlRef.current) {
+        setUrl(committedUrlRef.current)
+      }
+    }, 300)
+  }
+
+  const beginChromeInteraction = (event) => {
+    event.preventDefault()
+    freezeUrlForChrome()
+  }
+
   const apply = () => {
-    const normalized = normalizeUrl(url)
+    // Always use the committed URL — never the live DOM value after a mobile
+    // tap that may have appended checkbox/button labels into the field.
+    const raw = committedUrlRef.current
+    const normalized = normalizeUrl(raw)
+
+    if (raw !== url) {
+      setUrl(raw)
+    }
 
     if (!normalized) {
       setError('URL is required')
@@ -122,7 +212,8 @@ export function LinkPopover({
     }
 
     setError('')
-    onApply?.({ url: normalized, openInNewTab })
+    // Links open in the same tab by default (no "Open in new tab" UI on iOS).
+    onApply?.({ url: normalized, openInNewTab: false })
     onOpenChange?.(false)
   }
 
@@ -148,7 +239,7 @@ export function LinkPopover({
         <button
           type="button"
           aria-label="Close"
-          onMouseDown={(event) => event.preventDefault()}
+          onPointerDown={beginChromeInteraction}
           onClick={() => onOpenChange?.(false)}
           className={cn(
             'inline-flex h-7 w-7 items-center justify-center rounded-md',
@@ -160,25 +251,57 @@ export function LinkPopover({
         </button>
       </div>
 
-      <label className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">
+      <label
+        htmlFor={`${dialogId}-url`}
+        className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400"
+      >
         URL
       </label>
       <input
         ref={inputRef}
-        type="url"
-        value={url}
+        id={`${dialogId}-url`}
+        name="omid-editor-link-url"
+        type="text"
+        inputMode="url"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
         spellCheck={false}
+        enterKeyHint="done"
+        value={url}
         placeholder="https://example.com"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${dialogId}-error` : undefined}
-        onMouseDown={(event) => event.preventDefault()}
+        onBeforeInput={(event) => {
+          if (ignoreInputMutationRef.current) {
+            event.preventDefault()
+          }
+        }}
         onChange={(event) => {
-          setUrl(event.target.value)
+          if (ignoreInputMutationRef.current) {
+            // Revert mobile chrome-label pollution (e.g. Apply button text).
+            setUrl(committedUrlRef.current)
+            return
+          }
+          commitUrl(event.target.value)
+          if (error) setError('')
+        }}
+        onPaste={(event) => {
+          event.preventDefault()
+          const text = event.clipboardData?.getData('text/plain') ?? ''
+          // Use the first line only — product URLs are single-line; avoids
+          // accidental multi-line clipboard junk. Does not strip UI phrases.
+          const pasted = text.split(/\r?\n/)[0]?.trim() ?? ''
+          ignoreInputMutationRef.current = false
+          commitUrl(pasted)
           if (error) setError('')
         }}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
             event.preventDefault()
+            if (inputRef.current) {
+              committedUrlRef.current = inputRef.current.value
+            }
             apply()
           }
         }}
@@ -203,24 +326,10 @@ export function LinkPopover({
         </p>
       ) : null}
 
-      <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-        <input
-          type="checkbox"
-          checked={openInNewTab}
-          onMouseDown={(event) => event.preventDefault()}
-          onChange={(event) => setOpenInNewTab(event.target.checked)}
-          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
-        />
-        <span className="inline-flex items-center gap-1.5">
-          <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden="true" />
-          Open in new tab
-        </span>
-      </label>
-
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onMouseDown={(event) => event.preventDefault()}
+          onPointerDown={beginChromeInteraction}
           onClick={apply}
           className={cn(
             'inline-flex h-9 flex-1 items-center justify-center rounded-lg px-3',
@@ -234,7 +343,7 @@ export function LinkPopover({
         {isLink ? (
           <button
             type="button"
-            onMouseDown={(event) => event.preventDefault()}
+            onPointerDown={beginChromeInteraction}
             onClick={remove}
             className={cn(
               'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3',
